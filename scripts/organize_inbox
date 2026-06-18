@@ -1,0 +1,154 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import hashlib
+import re
+import shutil
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _common import append_unique, config, course_dir, find_workspace, learning_dir
+
+
+SOLUTION_WORDS = {"solution", "solutions", "answer", "answers", "key", "答案", "解答"}
+EXERCISE_WORDS = {"exercise", "exercises", "assignment", "homework", "problem", "problems", "作业", "练习"}
+SLIDE_WORDS = {"lecture", "lectures", "slide", "slides", "课件", "讲义"}
+READING_WORDS = {"reading", "readings", "chapter", "paper", "论文", "阅读"}
+
+
+def slug(value: str) -> str:
+    value = value.lower().replace("_", "-").replace(" ", "-")
+    value = re.sub(r"[^a-z0-9\u4e00-\u9fff-]+", "-", value)
+    return re.sub(r"-+", "-", value).strip("-") or "untitled"
+
+
+def digest(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def classify(name: str) -> tuple[str, str]:
+    lowered = name.lower()
+    if any(word in lowered for word in SOLUTION_WORDS):
+        return "solutions", "solutions"
+    if any(word in lowered for word in EXERCISE_WORDS):
+        return "exercises", "exercises"
+    if any(word in lowered for word in SLIDE_WORDS):
+        return "materials", "slides"
+    if any(word in lowered for word in READING_WORDS):
+        return "materials", "reading"
+    return "materials", "material"
+
+
+def clean_topic(value: str, kind: str) -> str:
+    if kind == "solutions":
+        words = SOLUTION_WORDS
+    elif kind == "exercises":
+        words = {"exercise", "exercises", "assignment", "homework", "作业", "练习"}
+    elif kind == "slides":
+        words = SLIDE_WORDS
+    elif kind == "reading":
+        words = READING_WORDS
+    else:
+        words = set()
+    cleaned = value
+    for word in sorted(words, key=len, reverse=True):
+        cleaned = re.sub(re.escape(word), " ", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"(?<!\d)\d{1,3}(?!\d)", " ", cleaned)
+    return slug(cleaned) or kind
+
+
+def unique_target(path: Path) -> Path:
+    if not path.exists():
+        return path
+    base = path.stem
+    suffix = path.suffix
+    version = 2
+    while True:
+        candidate = path.with_name(f"{base}-v{version}{suffix}")
+        if not candidate.exists():
+            return candidate
+        version += 1
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Plan or apply safe inbox organization.")
+    parser.add_argument("--workspace")
+    parser.add_argument("--course", help="Treat all files as belonging to this course.")
+    parser.add_argument("--apply", action="store_true")
+    args = parser.parse_args()
+
+    root = find_workspace(args.workspace)
+    cfg = config(root)
+    inbox = root / str(cfg["inbox_root"])
+    source = inbox / "new"
+    unresolved = inbox / "unresolved"
+    courses_root = learning_dir(root, cfg) / "courses"
+    courses = {p.name: p for p in courses_root.iterdir() if p.is_dir() and not p.name.startswith("_")}
+    if args.course and args.course not in courses:
+        raise SystemExit(f"Unknown course: {args.course}")
+
+    files = sorted(p for p in source.rglob("*") if p.is_file() and p.name != ".gitkeep")
+    if not files:
+        print("Inbox is empty.")
+        return
+
+    known_hashes: dict[str, Path] = {}
+    for course in courses.values():
+        for existing in course.rglob("*"):
+            if existing.is_file() and existing.name != ".gitkeep":
+                try:
+                    known_hashes[digest(existing)] = existing
+                except OSError:
+                    pass
+
+    operations: list[tuple[Path, Path, str]] = []
+    seen_hashes = dict(known_hashes)
+    for item in files:
+        rel = item.relative_to(source)
+        course_id = args.course
+        if not course_id and rel.parts and rel.parts[0] in courses:
+            course_id = rel.parts[0]
+        if not course_id:
+            matches = [cid for cid in courses if cid in slug(item.stem)]
+            if len(matches) == 1:
+                course_id = matches[0]
+        item_hash = digest(item)
+        if item_hash in seen_hashes:
+            print(f"DUPLICATE {rel} == {seen_hashes[item_hash]}; no action")
+            continue
+        if not course_id:
+            operations.append((item, unresolved / item.name, "unresolved"))
+            continue
+
+        folder, kind = classify(item.stem)
+        sequence_match = re.search(r"(?<!\d)(\d{1,3})(?!\d)", item.stem)
+        sequence = sequence_match.group(1).zfill(2) if sequence_match else "00"
+        topic = clean_topic(item.stem, kind)
+        target_name = f"{sequence}-{topic}-{kind}-v1{item.suffix.lower()}"
+        target = course_dir(root, cfg, course_id) / folder / target_name
+        operations.append((item, unique_target(target), course_id))
+        seen_hashes[item_hash] = item
+
+    for source_path, target, reason in operations:
+        print(f"MOVE {source_path.relative_to(root)} -> {target.relative_to(root)} [{reason}]")
+    if not args.apply:
+        print("Preview only. Inspect ambiguous files, then re-run with --apply.")
+        return
+
+    for source_path, target, reason in operations:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(source_path), str(target))
+        if reason != "unresolved":
+            index = course_dir(root, cfg, reason) / "materials" / "index.md"
+            append_unique(index, f"- `{target.relative_to(course_dir(root, cfg, reason))}`")
+    print(f"Applied {len(operations)} operation(s).")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,9 @@
+version: 1
+workspace_id: personal-learning
+learning_root: learning
+inbox_root: inbox
+active_course_limit: 4
+minimum_minutes_per_course: 90
+weekly_buffer_percent: 15
+weekly_minutes: 600
+external_library:

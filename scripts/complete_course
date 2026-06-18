@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _common import append_unique, config, course_dir, find_workspace, read_frontmatter, replace_frontmatter_value, today, update_portfolio_status
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Create completion evidence and schedule maintenance.")
+    parser.add_argument("course_id")
+    parser.add_argument("--workspace")
+    parser.add_argument("--start-maintenance", action="store_true")
+    parser.add_argument("--apply", action="store_true")
+    args = parser.parse_args()
+
+    root = find_workspace(args.workspace)
+    cfg = config(root)
+    course = course_dir(root, cfg, args.course_id)
+    readme = course / "README.md"
+    if not readme.exists():
+        raise SystemExit(f"Unknown course: {args.course_id}")
+    meta = read_frontmatter(readme)
+    status = meta.get("status")
+    if args.start_maintenance:
+        if status != "completed":
+            raise SystemExit(f"Course must be completed before maintenance, got {status}")
+        print(f"MARK {args.course_id} maintenance")
+        if not args.apply:
+            print("Preview only. Re-run with --apply.")
+            return
+        replace_frontmatter_value(readme, "status", "maintenance")
+        update_portfolio_status(root, cfg, args.course_id, "maintenance")
+        print(f"{args.course_id} entered maintenance")
+        return
+    if status not in {"active", "planned"}:
+        raise SystemExit(f"Course status must be active or planned, got {status}")
+
+    print("Completion requires: final assessment/project, transfer task, 7-day delayed test,")
+    print("target mastery levels, and retests for major errors.")
+    print(f"MARK {args.course_id} completed and schedule 30/60-day maintenance reviews")
+    if not args.apply:
+        print("Preview only. Verify evidence, then re-run with --apply.")
+        return
+
+    completion = course / "course-completion.md"
+    if completion.exists():
+        raise SystemExit(f"Completion record already exists: {completion}")
+    completion.write_text(
+        f"""# 课程完成记录
+
+- 课程：{meta.get('name', args.course_id)}
+- 完成日期：{today()}
+- 状态：completed
+
+## 验收证据
+
+- [ ] 最终项目或考试达标
+- [ ] 陌生迁移任务达标
+- [ ] 7天延迟测试达标
+- [ ] 关键知识节点达到目标等级
+- [ ] 主要错误完成变式复测
+
+## 能力证据
+
+待补充。
+
+## 遗留问题
+
+待补充。
+""",
+        encoding="utf-8",
+    )
+    replace_frontmatter_value(readme, "status", "completed")
+    update_portfolio_status(root, cfg, args.course_id, "completed")
+    base = dt.date.today()
+    queue = root / str(cfg["learning_root"]) / "review-queue.md"
+    append_unique(queue, f"| {(base + dt.timedelta(days=30)).isoformat()} | {args.course_id} | 30天保持测试 | course-completion | - | planned |")
+    append_unique(queue, f"| {(base + dt.timedelta(days=60)).isoformat()} | {args.course_id} | 60天迁移任务 | course-completion | - | planned |")
+    print(f"Created {completion}")
+
+
+if __name__ == "__main__":
+    main()

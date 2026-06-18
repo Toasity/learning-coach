@@ -1,0 +1,45 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import shutil
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _common import config, course_dir, find_workspace, learning_dir, read_frontmatter, replace_frontmatter_value, update_portfolio_status
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Archive a completed or maintenance course.")
+    parser.add_argument("course_id")
+    parser.add_argument("--workspace")
+    parser.add_argument("--apply", action="store_true")
+    args = parser.parse_args()
+
+    root = find_workspace(args.workspace)
+    cfg = config(root)
+    source = course_dir(root, cfg, args.course_id)
+    readme = source / "README.md"
+    if not readme.exists():
+        raise SystemExit(f"Unknown course: {args.course_id}")
+    status = read_frontmatter(readme).get("status")
+    if status != "maintenance":
+        raise SystemExit(f"Only maintenance courses can be archived; got {status}")
+    target = learning_dir(root, cfg) / "archive" / args.course_id
+    if target.exists():
+        raise SystemExit(f"Archive target exists: {target}")
+
+    print(f"MOVE {source} -> {target}")
+    if not args.apply:
+        print("Preview only. Confirm maintenance evidence, then re-run with --apply.")
+        return
+    replace_frontmatter_value(readme, "status", "archived")
+    update_portfolio_status(root, cfg, args.course_id, "archived")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.move(str(source), str(target))
+    print(f"Archived {args.course_id}")
+
+
+if __name__ == "__main__":
+    main()

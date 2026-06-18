@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import shutil
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _common import append_unique, config, find_workspace, learning_dir, read_frontmatter, replace_frontmatter_value, today, update_portfolio_status
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Reactivate an archived course for diagnosis.")
+    parser.add_argument("course_id")
+    parser.add_argument("--workspace")
+    parser.add_argument("--apply", action="store_true")
+    args = parser.parse_args()
+
+    root = find_workspace(args.workspace)
+    cfg = config(root)
+    learning = learning_dir(root, cfg)
+    source = learning / "archive" / args.course_id
+    target = learning / "courses" / args.course_id
+    readme = source / "README.md"
+    if not readme.exists() or read_frontmatter(readme).get("status") != "archived":
+        raise SystemExit(f"Archived course not found: {args.course_id}")
+    if target.exists():
+        raise SystemExit(f"Active course path already exists: {target}")
+
+    print(f"RESTORE {source} -> {target} as planned; require diagnostic before active status")
+    if not args.apply:
+        print("Preview only. Re-run with --apply.")
+        return
+    replace_frontmatter_value(readme, "status", "planned")
+    shutil.move(str(source), str(target))
+    update_portfolio_status(root, cfg, args.course_id, "planned")
+    append_unique(
+        learning / "task-inbox.md",
+        f"- [ ] {today()} `{args.course_id}` 重新激活诊断：检查保持率后再决定学习计划。",
+    )
+    print(f"Reactivated {args.course_id} as planned")
+
+
+if __name__ == "__main__":
+    main()

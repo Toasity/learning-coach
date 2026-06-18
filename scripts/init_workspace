@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import shutil
+from pathlib import Path
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Initialize a learning workspace.")
+    parser.add_argument("path", nargs="?", default=".")
+    parser.add_argument("--workspace-id", default="personal-learning")
+    parser.add_argument("--apply", action="store_true")
+    args = parser.parse_args()
+
+    target = Path(args.path).resolve()
+    marker = target / "learning-workspace.yaml"
+    if marker.exists():
+        raise SystemExit(f"Workspace already exists: {marker}")
+
+    print(f"CREATE workspace at {target}")
+    if not args.apply:
+        print("Preview only. Re-run with --apply.")
+        return
+
+    template = Path(__file__).resolve().parent.parent / "assets" / "workspace-template"
+    target.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(template, target, dirs_exist_ok=True)
+    marker.write_text(
+        "\n".join(
+            [
+                "version: 1",
+                f"workspace_id: {args.workspace_id}",
+                "learning_root: learning",
+                "inbox_root: inbox",
+                "active_course_limit: 4",
+                "minimum_minutes_per_course: 90",
+                "weekly_buffer_percent: 15",
+                "weekly_minutes: 600",
+                "external_library:",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    print(f"Created {marker}")
+
+
+if __name__ == "__main__":
+    main()

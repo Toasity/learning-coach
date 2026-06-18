@@ -1,0 +1,84 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _common import config, find_workspace, learning_dir, read_frontmatter
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Generate a capacity-safe parallel weekly plan.")
+    parser.add_argument("--workspace")
+    parser.add_argument("--minutes", type=int)
+    parser.add_argument("--apply", action="store_true")
+    args = parser.parse_args()
+
+    root = find_workspace(args.workspace)
+    cfg = config(root)
+    learning = learning_dir(root, cfg)
+    courses = []
+    for readme in sorted((learning / "courses").glob("*/README.md")):
+        meta = read_frontmatter(readme)
+        if meta.get("status") == "active":
+            courses.append((str(meta.get("course_id", readme.parent.name)), str(meta.get("name", readme.parent.name))))
+
+    total = args.minutes or int(cfg["weekly_minutes"])
+    buffer = round(total * int(cfg["weekly_buffer_percent"]) / 100)
+    usable = total - buffer
+    minimum = int(cfg["minimum_minutes_per_course"])
+    required = minimum * len(courses)
+    if required > usable:
+        raise SystemExit(
+            f"Insufficient capacity: {len(courses)} active courses require {required}m, "
+            f"but only {usable}m is usable after buffer."
+        )
+    remaining = usable - required
+    extra = remaining // len(courses) if courses else 0
+    leftover = remaining - extra * len(courses)
+    monday = dt.date.today() - dt.timedelta(days=dt.date.today().weekday())
+
+    lines = [
+        "# 本周计划",
+        "",
+        f"- 周起始：{monday.isoformat()}",
+        f"- 总预算：{total} 分钟",
+        f"- 缓冲：{buffer} 分钟",
+        f"- 可用：{usable} 分钟",
+        "",
+        "## 并行课程容量",
+        "",
+        "| 课程ID | 课程 | 保底 | 动态余量 | 本周上限 | 本周成果 | 已用 |",
+        "|---|---|---:|---:|---:|---|---:|",
+    ]
+    for index, (course_id, name) in enumerate(courses):
+        bonus = extra + (1 if index < leftover else 0)
+        lines.append(f"| {course_id} | {name} | {minimum} | {bonus} | {minimum + bonus} | 待规划 | 0 |")
+    lines += [
+        "",
+        "## 排期规则",
+        "",
+        "动态余量需根据截止日期、到期复习、知识瓶颈和距离上次学习时间重新分配。",
+        "如果没有动态需求，表中的平均余量作为默认上限。",
+        "",
+        "## 本周任务",
+        "",
+        "| 日期 | 课程 | 任务 | 类型 | 预计 | 证据 | 状态 |",
+        "|---|---|---|---|---:|---|---|",
+        "| 待定 | 待定 | 检查到期复习并确定课程成果 | planning | 30 | 更新后的计划 | planned |",
+        "",
+    ]
+    text = "\n".join(lines)
+    print(text)
+    if args.apply:
+        (learning / "weekly-plan.md").write_text(text, encoding="utf-8")
+        print(f"\nUpdated {learning / 'weekly-plan.md'}")
+    else:
+        print("\nPreview only. Re-run with --apply.")
+
+
+if __name__ == "__main__":
+    main()

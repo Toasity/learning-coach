@@ -1,0 +1,60 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import shutil
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _common import append_unique, config, course_dir, find_workspace, learning_dir, today, valid_course_id
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Create a course from the bundled template.")
+    parser.add_argument("course_id")
+    parser.add_argument("--name", required=True)
+    parser.add_argument("--status", choices=["planned", "active"], default="planned")
+    parser.add_argument("--workspace")
+    parser.add_argument("--apply", action="store_true")
+    args = parser.parse_args()
+
+    if not valid_course_id(args.course_id):
+        raise SystemExit("course_id must use lowercase letters, digits, and single hyphens")
+    root = find_workspace(args.workspace)
+    cfg = config(root)
+    target = course_dir(root, cfg, args.course_id)
+    if target.exists():
+        raise SystemExit(f"Course already exists: {target}")
+
+    active = 0
+    for readme in (learning_dir(root, cfg) / "courses").glob("*/README.md"):
+        if "status: active" in readme.read_text(encoding="utf-8"):
+            active += 1
+    if args.status == "active" and active >= int(cfg["active_course_limit"]):
+        raise SystemExit("Active course limit reached")
+
+    print(f"CREATE {args.course_id} ({args.name}) as {args.status}")
+    if not args.apply:
+        print("Preview only. Re-run with --apply.")
+        return
+
+    template = Path(__file__).resolve().parent.parent / "assets" / "workspace-template" / "learning" / "courses" / "_course-template"
+    shutil.copytree(template, target)
+    readme = target / "README.md"
+    text = readme.read_text(encoding="utf-8")
+    text = text.replace("__COURSE_ID__", args.course_id)
+    text = text.replace("__COURSE_NAME__", args.name)
+    text = text.replace("__STATUS__", args.status)
+    text = text.replace("__DATE__", today())
+    readme.write_text(text, encoding="utf-8")
+    portfolio = learning_dir(root, cfg) / "portfolio.md"
+    append_unique(
+        portfolio,
+        f"| {args.course_id} | {args.name} | {args.status} | {cfg['minimum_minutes_per_course']} | 待定义 | - | {today()} |",
+    )
+    print(f"Created {target}")
+
+
+if __name__ == "__main__":
+    main()

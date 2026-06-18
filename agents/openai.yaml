@@ -1,0 +1,4 @@
+interface:
+  display_name: "Learning Coach"
+  short_description: "管理多课程学习工作区、课件、复习计划和课程生命周期"
+  default_prompt: "使用 $learning-coach 识别当前学习工作区，并启动今天最合适的学习任务。"
