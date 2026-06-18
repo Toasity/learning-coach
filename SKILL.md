@@ -33,7 +33,11 @@ Read `references/workspace-schema.md` before changing workspace structure.
 
 ## Preserve learning integrity
 
-- Require the learner's first attempt before giving a full solution.
+- Adapt the session to the learner's starting point. For unseen material, teach before
+  testing; for learned material, use retrieval, correction, and transfer.
+- Require the learner's first attempt before giving a full solution only after the
+  required knowledge has been taught or confirmed. Do not make a beginner guess target
+  content they have not learned.
 - Reveal hints in five levels: restate, concept, local hint, framework, full answer.
 - Do not count work completed with high-level hints as independent mastery.
 - Do not read `solutions/` in coaching or examiner mode before the learner submits.
