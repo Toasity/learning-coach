@@ -58,26 +58,74 @@ the check reveals that the target was never learned or its prerequisites are mis
 
 ## First-principles problem exploration
 
-Use a real or theoretical problem that unifies the chapter's core ideas. The coach
-selects the problem from the course goal and materials; use a small number of supporting
-subproblems when one natural problem cannot cover every core idea.
+Begin from the chapter as a whole, not from the first definition or formula encountered.
+Before questioning the learner:
 
-1. Define the problem's context, inputs, outputs, boundaries, goal, and success criteria.
-2. Separate observable facts, provisional assumptions, customary practices, and hard
+1. Inventory the chapter's core concepts, theories, relationships, and intended
+   applications from the materials.
+2. Identify what kinds of real systems, stakeholder decisions, diagnoses, predictions,
+   or designs require those ideas.
+3. Select a real industry, public-system, research, or engineering anchor problem. State
+   when the scenario is coach-constructed rather than documented in the materials.
+4. Map each core idea to the part of the anchor problem it helps solve. Add supporting
+   subproblems for important ideas that do not fit naturally.
+
+The anchor problem must pass all of these checks:
+
+- A stakeholder must make a consequential decision, explanation, prediction, or design.
+- The problem must include an objective, observable inputs or evidence, hard constraints
+  or tradeoffs, and a meaningful failure consequence.
+- Solving it must require a causal chain or integration of multiple core chapter ideas,
+  normally at least three.
+- The answer must not reduce to substituting values into one newly introduced definition
+  or formula.
+- Removing the industry context must materially change the reasoning, constraints, or
+  success criteria. A textbook exercise with realistic nouns is not an industry problem.
+
+Reject or enlarge a proposed anchor problem if it fails any check. A star graph, ideal
+gas, frictionless market, single database table, or similarly simplified object may be a
+useful **microscope model** for deriving one mechanism, but it is not by itself a
+system-level anchor problem.
+
+Run the exploration top-down:
+
+1. Define the anchor problem's stakeholder, decision, context, inputs, outputs,
+   boundaries, objective, success criteria, constraints, tradeoffs, and failure cost.
+2. Ask for an initial system-level judgment or decomposition using only information the
+   learner already has. Do not begin with a formula-recall or direct-calculation question.
+3. Separate observable facts, provisional assumptions, customary practices, and hard
    constraints. Do not treat a textbook formula, named model, or standard solution as a
    first principle.
-3. Ask why each claim is needed until reaching foundations appropriate to the current
+4. Decompose the anchor problem into mechanisms and subproblems. Introduce the smallest
+   useful microscope model only after explaining what part of reality it isolates and
+   what it deliberately ignores.
+5. Ask why each claim is needed until reaching foundations appropriate to the current
    course level: definitions, axioms, established observations, resource limits, or
    explicit behavioral assumptions.
-4. Derive the required properties or mechanism before introducing its formal name.
-5. For each concept, connect its foundation, the constraint it addresses, the subproblem
+6. Derive the required properties or mechanism before introducing its formal name.
+7. For each concept, connect its foundation, the constraint it addresses, the subproblem
    it supports, and whether it is necessary or one replaceable design choice.
-6. Reassemble the reasoning as:
+8. Return from the microscope model to the anchor decision after each conceptual block:
+   state what can now be decided, what remains unknown, and what the simplification may
+   get wrong.
+9. Reassemble the reasoning as:
    `problem -> facts/assumptions/constraints -> foundations -> derivation -> formal
    concepts -> solution`.
-7. Change one assumption, constraint, or boundary condition and ask the learner to
+10. Change one assumption, constraint, or boundary condition and ask the learner to
    identify which conclusions survive and which parts of the solution must change.
-8. Record supporting subproblems and any core ideas that remain uncovered.
+11. Record the concept inventory, anchor-problem quality checks, microscope models,
+    supporting subproblems, and any core ideas that remain uncovered.
+
+Example distinction for a network-analysis chapter:
+
+- Too shallow: rename a star graph as an emergency network, then ask for degree,
+  betweenness, closeness, and link-prediction scores in formula order.
+- Suitable anchor: a communications operator must spend a limited upgrade budget to
+  reduce disruption risk, preserve reachability after hub failures, and prioritize
+  plausible new links. Evidence includes the current graph and traffic or interaction
+  history; constraints include budget, latency, and operational ownership. A star graph
+  can then isolate why several centrality measures disagree, before the conclusions are
+  tested on the operator's heterogeneous network.
 
 ## Bounded Socratic guidance
 
@@ -111,7 +159,8 @@ before the learner submits an attempt.
 3. Record the mode, materials used, content taught, question purpose, reasoning level,
    assistance or hint level, independent evidence, errors, time, material gaps, and next
    action. For first-principles exploration, also record the reasoning chain and
-   counterfactual test.
+   counterfactual test, concept inventory, anchor decision, quality checks, and
+   microscope-model limitations.
 4. Update the course journal, error log, knowledge map, global review queue, and dashboard.
 5. Schedule variant reviews at 1, 7, and 21 days where appropriate.
 

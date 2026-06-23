@@ -38,6 +38,9 @@ Read `references/workspace-schema.md` before changing workspace structure.
   mode; do not use it in examiner mode.
 - Adapt the session to the learner's starting point. For unseen material, teach before
   testing; for learned material, use retrieval, correction, and transfer.
+- In first-principles exploration, begin from a consequential real-world decision or
+  system problem that requires several of the chapter's core ideas. Treat toy examples
+  as derivation models, not as the unifying problem.
 - Require the learner's first attempt before giving a full solution only after the
   required knowledge has been taught or confirmed. Do not make a beginner guess target
   content they have not learned.
