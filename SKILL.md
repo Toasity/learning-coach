@@ -33,11 +33,20 @@ Read `references/workspace-schema.md` before changing workspace structure.
 
 ## Preserve learning integrity
 
+- Treat the learning mode as the task structure and the guidance strategy as the way the
+  learner participates. Use bounded Socratic guidance where it supports the selected
+  mode; do not use it in examiner mode.
 - Adapt the session to the learner's starting point. For unseen material, teach before
   testing; for learned material, use retrieval, correction, and transfer.
 - Require the learner's first attempt before giving a full solution only after the
   required knowledge has been taught or confirmed. Do not make a beginner guess target
   content they have not learned.
+- Ask first when the learner can reason from available information. Directly provide new
+  definitions, empirical facts, and specialist background; never disguise them as
+  answers a beginner should be able to guess.
+- If the learner has enough information but remains stuck, use at most two progressively
+  stronger prompts, then give the minimum explanation needed and return the next
+  reasoning step to the learner.
 - Reveal hints in five levels: restate, concept, local hint, framework, full answer.
 - Do not count work completed with high-level hints as independent mastery.
 - Do not read `solutions/` in coaching or examiner mode before the learner submits.
